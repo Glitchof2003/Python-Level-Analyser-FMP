@@ -1,0 +1,61 @@
+import unreal
+import csv
+
+#define export data function first
+def export_data(name,count,mesh,lods,tris,mats):
+    
+    #append row to csv
+    with open((file_path), mode = "a", newline = "") as csvfile:
+        fieldnames = ["Mesh_Name","Instance_Count","Static_Mesh","LODs","Triangles","Materials"]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writerow({"Mesh_Name": name, "Instance_Count": count, "Static_Mesh": mesh, "LODs": lods, "Triangles": tris, "Materials": mats})
+
+
+def count_instances():
+    
+    #set up instances of unreal classes
+    EAS = unreal.EditorActorSubsystem()
+    ISMC = unreal.InstancedStaticMeshComponent
+    SM = unreal.StaticMeshComponent
+    
+    
+    #get selected actors from outliner
+    selected_actors = EAS.get_selected_level_actors()
+
+    ##output data for each actor
+    
+    for selected_actor in selected_actors:
+        
+        ###initialise variables in case of error
+        count = "error"
+        mesh = "error"
+        name = "error"
+        lods = "error"
+        tris = "error"
+        mats = "error"
+        
+ 
+        selected_component = selected_actor.get_component_by_class(ISMC)
+        #if instanced SM found then do this
+        if not selected_component:
+            selected_component = selected_actor.get_component_by_class(SM)
+            count = 1
+            mesh = selected_component.get_editor_property("static_mesh")
+            
+        #if not instanced (i.e single static mesh) do this
+        else:
+            count = ISMC.get_instance_count(selected_component)
+        
+            mesh = selected_component.get_editor_property("static_mesh")
+            
+        name = selected_actor.get_name()   
+        lods = mesh.get_num_lods()
+        tris = mesh.get_num_triangles(0)
+        mats = unreal.EditorStaticMeshLibrary.get_number_materials(mesh)
+            
+            
+        print ("Instance count for {}: {}".format(name, count))
+        export_data(name,count,mesh,lods,tris,mats)
+    print("Full data exported to {}".format(file_path))
+
+count_instances()
